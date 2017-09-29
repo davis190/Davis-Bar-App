@@ -3,9 +3,9 @@
 This is a base tracking application. It is used for a bar app to track amount of beer consumed. It uses Lambda APIs to pull data from dynamo. The HTML web page interacts with it though a set of API Gateway APIs.
 
 ## File explaination
-cf.template.yml - This file is a CloudFormation template that creates lambda functions from the pythong files in the folders.
-addBeer & getPeople - Python functions for lambda that will act as the API and interact with the Dynamo tables
-html - The folder of HTML files. Could be a single page app but split out some config variables to not check them into GitHub.
+- cf.template.yml - This file is a CloudFormation template that creates lambda functions from the pythong files in the folders.
+- addBeer & getPeople - Python functions for lambda that will act as the API and interact with the Dynamo tables
+- html - The folder of HTML files. Could be a single page app but split out some config variables to not check them into GitHub.
 
 ## Setup and maintain the stack
 
@@ -22,9 +22,9 @@ html - The folder of HTML files. Could be a single page app but split out some c
 
 
 ## Current Manual steps
-CORS + Registering the objects in order
-Associating API key/usage plan with API
-Dynamo Table
+- CORS + Registering the objects in order
+- Associating API key/usage plan with API
+- Dynamo Table
 
 
 
