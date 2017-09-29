@@ -7,6 +7,12 @@ This is a base tracking application. It is used for a bar app to track amount of
 - addBeer & getPeople - Python functions for lambda that will act as the API and interact with the Dynamo tables
 - html - The folder of HTML files. Could be a single page app but split out some config variables to not check them into GitHub.
 
+## DynamoDB Table(s)
+DavisBarApp
+- Name - primary key
+- BeerCount
+- PIN
+
 ## Setup and maintain the stack
 
 ### Prep Steps
