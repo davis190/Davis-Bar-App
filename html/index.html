@@ -1,0 +1,120 @@
+<html>
+    <head>
+        <title>Davis Bar App</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script src="variables.js"></script>
+        <script>
+            function populatePeople() {
+                console.log("populate people")
+                $("#people").html('<img class="loading" src="https://media.tenor.com/images/d6cd5151c04765d1992edfde14483068/tenor.gif" />');
+                $.ajax({
+                    url: apiUrl + "/people",
+                    headers: {
+                        "X-Api-Key": apiKey
+                    }
+                })
+                .done(function( data ) {
+                    $("#people").html('');
+                    if ( console && console.log ) {
+                        //console.log(data);
+                        //console.log(data.Items);
+                        //console.log(data['Items']);
+                        $.each(data['Items'], function(index, obj) {
+                            //console.log(obj);
+                            $("#people").append('<div class="person" onclick="personClick(\''+obj.Name.S+'\')"><center><div class="personText">'+obj.Name.S+'</div><div class="beerCountText">'+obj.BeerCount.N+'</div></center></div>');
+                        })
+                    }
+                });
+            }
+            function personClick(person) {
+                console.log(person);
+                $('#personSubmit').val(person);
+                $("#people").hide();
+                $('#enterPin').show();
+            }
+            function addBeer() {
+                
+                $.ajax({
+                    type: "POST",
+                    url: apiUrl + "/beer",
+                    data: '{"Name": "'+$('#personSubmit').val()+'","PIN": "'+$('#pinInput').val()+'"}',
+                    headers: {
+                        "x-api-key": apiKey
+                    },
+                    beforeSend: function() {
+                        console.log('before send');
+                        $("#enterPin").html('<img class="loading" src="https://media.tenor.com/images/d6cd5151c04765d1992edfde14483068/tenor.gif" />');
+                    }
+                }).done(function( data ) {
+                    $('#personSubmit').val('');
+                    $('#pinInput').val('');
+                    $("#people").show();
+                    $('#enterPin').hide();
+                    console.log("yay beer");
+                    populatePeople();
+                });
+            }
+            populatePeople();
+        </script>
+        <style>
+            .loading {
+
+            }
+            #people {
+
+            }
+            .person {
+                background-color: gray;
+                border: 1px solid black;
+                width:25%;
+                height:250;
+                border-radius: 10px;
+                margin: 5px;
+                float:left;
+                cursor: pointer;
+            }
+            .personText {
+                width:100%;
+                font-size: 3rem;
+                padding-top: 25%;
+                padding-left:auto;
+                padding-right:auto;
+                color: white;
+            }
+            .beerCountText {
+                font-size: 2rem;
+                color: white;
+            }
+            #enterPin {
+                width:100%;
+                height: 100%;
+                display:none;
+            }
+            .pinInput {
+                width:40%;
+                height: 50px;
+                font-size: 3rem;
+                margin-top:20%;
+            }
+            .pinSubmit {
+                width:20%;
+                height: 50px;
+                font-size: 2rem;
+                margin-top:5px;
+                border-radius: 10pxl
+            }
+        </style>
+    </head>
+    <body>
+        <div id="people">
+
+        </div>
+        <div id="enterPin">
+            <center>
+                <input type="text" id="personSubmit" style="display:none" />
+                <input id="pinInput" class="pinInput" type="password" /><br />
+                <button class="pinSubmit" onclick="addBeer()">Submit</button>
+            </center>
+        </div>
+    </body>
+</html>

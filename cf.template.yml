@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bar App APIs
+
+Resources:
+##############################################
+#### Overall API Setup  ####
+##############################################
+  BarAppApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "Davis Bar App"
+      Description: API suite that interacts with dynamoDB
+      FailOnWarnings: true
+##################################
+#### API Stage and Deployment ####
+##################################
+  BarAppStage:
+    DependsOn: [PeopleMethodGET, PeopleMethodOPTIONS, BeerMethodPOST, BeerMethodOPTIONS]
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref 'ApiDeployment'
+      RestApiId: !Ref 'BarAppApi'
+      StageName: "v1"
+      MethodSettings:
+        - LoggingLevel: ERROR
+          MetricsEnabled: true
+          ResourcePath: "/*"
+          HttpMethod: "*"
+  ApiDeployment:
+    DependsOn: [PeopleMethodGET, PeopleMethodOPTIONS, BeerMethodPOST, BeerMethodOPTIONS]
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref 'BarAppApi'
+##########################################
+#### Get data ####
+##########################################
+  PeopleResource:
+    DependsOn: [GetPeopleLambda, GetPeopleLambdaPermission]
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref "BarAppApi"
+      ParentId: !GetAtt ["BarAppApi", "RootResourceId"]
+      PathPart: "people"
+  PeopleMethodGET:
+    DependsOn: [GetPeopleLambda, GetPeopleLambdaPermission]
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      RestApiId: !Ref BarAppApi
+      ResourceId: !Ref PeopleResource
+      HttpMethod: "GET"
+      AuthorizationType: "NONE"
+      ApiKeyRequired: true
+      Integration:
+        Type: "AWS_PROXY"
+        IntegrationHttpMethod: POST
+        Uri: !Join ["", ["arn:aws:apigateway:", !Ref "AWS::Region", ":lambda:path/2015-03-31/functions/", !GetAtt ["GetPeopleLambda", "Arn"], "/invocations"] ]
+        IntegrationResponses:
+          - StatusCode: 200
+  PeopleMethodOPTIONS:
+    DependsOn: [GetPeopleLambda, GetPeopleLambdaPermission]
+    Type: AWS::ApiGateway::Method
+    Properties:
+        AuthorizationType: NONE
+        RestApiId: !Ref BarAppApi
+        ResourceId: !Ref PeopleResource
+        HttpMethod: OPTIONS
+        Integration:
+          IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+          PassthroughBehavior: WHEN_NO_MATCH
+          RequestTemplates:
+              application/json: '{"statusCode": 200}'
+          Type: MOCK
+        MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+              application/json: 'Empty'
+          ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: false
+              method.response.header.Access-Control-Allow-Methods: false
+              method.response.header.Access-Control-Allow-Origin: false
+##########################################
+#### Add beer ####
+##########################################
+  BeerResource:
+    DependsOn: [AddBeerLambda, AddBeerLambdaPermission]
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref "BarAppApi"
+      ParentId: !GetAtt ["BarAppApi", "RootResourceId"]
+      PathPart: "beer"
+  BeerMethodPOST:
+    DependsOn: [AddBeerLambda, AddBeerLambdaPermission]
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      RestApiId: !Ref BarAppApi
+      ResourceId: !Ref BeerResource
+      HttpMethod: "POST"
+      AuthorizationType: "NONE"
+      ApiKeyRequired: true
+      Integration:
+        Type: "AWS_PROXY"
+        IntegrationHttpMethod: POST
+        Uri: !Join ["", ["arn:aws:apigateway:", !Ref "AWS::Region", ":lambda:path/2015-03-31/functions/", !GetAtt ["AddBeerLambda", "Arn"], "/invocations"] ]
+        IntegrationResponses:
+          - StatusCode: 200
+  BeerMethodOPTIONS:
+    DependsOn: [AddBeerLambda, AddBeerLambdaPermission]
+    Type: AWS::ApiGateway::Method
+    Properties:
+        AuthorizationType: NONE
+        RestApiId: !Ref BarAppApi
+        ResourceId: !Ref BeerResource
+        HttpMethod: OPTIONS
+        Integration:
+          IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+          PassthroughBehavior: WHEN_NO_MATCH
+          RequestTemplates:
+              application/json: '{"statusCode": 200}'
+          Type: MOCK
+        MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+              application/json: 'Empty'
+          ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: false
+              method.response.header.Access-Control-Allow-Methods: false
+              method.response.header.Access-Control-Allow-Origin: false
+###########################
+###########################
+#### LAMBDA FUNCTIONS #####
+###########################
+###########################
+##########################
+#### Get People #####
+##########################
+  GetPeopleLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Get People'
+      Code: ./getPeople
+      Handler: getPeople.lambda_handler
+      Role: !GetAtt BarAppLambdaRole.Arn
+      Runtime: python3.6
+      Timeout: '60'
+  GetPeopleLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt GetPeopleLambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Join ["", ["arn:aws:execute-api:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":", !Ref "BarAppApi", "/*/GET/*/applications"] ]
+##########################
+#### Add Beer #####
+##########################
+  AddBeerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Update beer count'
+      Code: ./addBeer
+      Handler: addBeer.lambda_handler
+      Role: !GetAtt BarAppLambdaRole.Arn
+      Runtime: python3.6
+      Timeout: '60'
+  AddBeerLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt GetPeopleLambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Join ["", ["arn:aws:execute-api:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":", !Ref "BarAppApi", "/*/POST/*/applications"] ]
+###################
+### Lambda Role ###
+###################
+  BarAppLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: ["lambda.amazonaws.com"]
+            Action: ["sts:AssumeRole"]
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "BarAppPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: [
+                  "dynamodb:*"
+                ]
+                Resource: "*"
+              ## Permissions for logging
+              - Effect: "Allow"
+                Action: [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ]
+                Resource: "*"
+              
+
+
