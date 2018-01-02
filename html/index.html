@@ -4,7 +4,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
         <script src="variables.js"></script>
         <script>
-            function populatePeople() {
+            function populatePeople(beer) {
                 console.log("populate people")
                 $("#people").html('<img class="loading" src="https://media.tenor.com/images/d6cd5151c04765d1992edfde14483068/tenor.gif" />');
                 $.ajax({
@@ -15,29 +15,87 @@
                 })
                 .done(function( data ) {
                     $("#people").html('');
+                    $("#people").append('<div id="beerDrinkingBanner">You are drinking '+beer+'</div>');
                     if ( console && console.log ) {
                         //console.log(data);
                         //console.log(data.Items);
                         //console.log(data['Items']);
                         $.each(data['Items'], function(index, obj) {
                             //console.log(obj);
-                            $("#people").append('<div class="person" onclick="personClick(\''+obj.Name.S+'\')"><center><div class="personText">'+obj.Name.S+'</div><div class="beerCountText">'+obj.BeerCount.N+'</div></center></div>');
+                            $("#people").append('<div class="person" onclick="personClick(\''+obj.Name.S+'\',\''+beer+'\')"><center><div class="personText">'+obj.Name.S+'</div><div class="beerCountText">'+obj.BeerCount.N+'</div></center></div>');
                         })
                     }
                 });
             }
-            function personClick(person) {
+            function populateBeer() {
+                console.log("populate beers")
+                $("#beer").html('<img class="loading" src="https://media.tenor.com/images/d6cd5151c04765d1992edfde14483068/tenor.gif" />');
+                $.ajax({
+                    url: apiUrl + "/beer",
+                    headers: {
+                        "X-Api-Key": apiKey
+                    }
+                })
+                .done(function( data ) {
+                    $("#beer").html('');
+                    if ( console && console.log ) {
+                        //console.log(data);
+                        //console.log(data.Items);
+                        //console.log(data['Items']);
+                        $("#beer").html('<div class="beer" id="beerLeft" onclick="beerClick(\'beerLeft\')"></div><div class="beer" id="beerLeftCenter" onclick="beerClick(\'beerLeftCenter\')"></div><div class="beer" id="beerRightCenter" onclick="beerClick(\'beerRightCenter\')"></div><div class="beer" id="beerRight" onclick="beerClick(\'beerRight\')"></div>');
+                        $.each(data['Items'], function(index, obj) {
+                            //console.log(obj);
+                            if (obj.TapPosition.S == "Left") {
+                                if (obj.Beer.S != "Empty") {
+                                    $("#beerLeft").css('background-color','green')
+                                }
+                                $("#beerLeft").html('<div class="beerText">'+obj.Beer.S+'</div>');
+                            }
+                            else if (obj.TapPosition.S == "LeftCenter") {
+                                if (obj.Beer.S != "Empty") {
+                                    $("#beerLeftCenter").css('background-color','green')
+                                }
+                                $("#beerLeftCenter").html('<div class="beerText">'+obj.Beer.S+'</div>');
+                            }
+                            else if (obj.TapPosition.S == "RightCenter") {
+                                if (obj.Beer.S != "Empty") {
+                                    $("#beerRightCenter").css('background-color','green')
+                                }
+                                $("#beerRightCenter").html('<div class="beerText">'+obj.Beer.S+'</div>');
+                            }
+                            else if (obj.TapPosition.S == "Right") {
+                                if (obj.Beer.S != "Empty") {
+                                    $("#beerRight").css('background-color','green')
+                                }
+                                $("#beerRight").html('<div class="beerText">'+obj.Beer.S+'</div>');
+                            }
+                        })
+                    }
+                });
+            }
+            function beerClick(tapHandle) {
+                //console.log(tapHandle);
+                //console.log($("#"+tapHandle+" .beerText").text());
+                if ($("#"+tapHandle+" .beerText").text() != "Empty") {
+                    $("#beer").hide();
+                    $("#people").show();
+                    populatePeople($("#"+tapHandle+" .beerText").text());
+                }
+            }
+            function personClick(person, beer) {
                 console.log(person);
                 $('#personSubmit').val(person);
+                $('#beerSubmit').val(beer);
                 $("#people").hide();
-                $('#enterPin').show();
+                $('#confirm').show();
+                $('#finalConf').html(person+"<br />is drinking<br />"+beer);
             }
             function addBeer() {
                 
                 $.ajax({
                     type: "POST",
                     url: apiUrl + "/beer",
-                    data: '{"Name": "'+$('#personSubmit').val()+'","PIN": "'+$('#pinInput').val()+'"}',
+                    data: '{"Name": "'+$('#personSubmit').val()+'","Beer": "'+$('#beerSubmit').val()+'"}',
                     headers: {
                         "x-api-key": apiKey
                     },
@@ -47,14 +105,16 @@
                     }
                 }).done(function( data ) {
                     $('#personSubmit').val('');
-                    $('#pinInput').val('');
-                    $("#people").show();
+                    $('#beerSubmit').val('');
+                    $("#people").hide();
                     $('#enterPin').hide();
+                    $('#confirm').hide();
+                    $("#beer").show();
                     console.log("yay beer");
-                    populatePeople();
+                    populateBeer();
                 });
             }
-            populatePeople();
+            populateBeer();
         </script>
         <style>
             .loading {
@@ -63,11 +123,36 @@
             #people {
 
             }
+            /*
+                BEER SCRREN
+            */
+            .beer {
+                background-color: gray;
+                border: 1px solid black;
+                width:22%;
+                height:100%;
+                border-radius: 10px;
+                margin: 5px;
+                cursor: pointer;
+                float:left;
+            }
+            .beerText {
+                width:100%;
+                font-size: 3rem;
+                padding-top: 25%;
+                padding-left:auto;
+                padding-right:auto;
+                color: white;
+                text-orientation: sideways;
+            }
+            /*
+                PEOPLE SCREEN
+            */
             .person {
                 background-color: gray;
                 border: 1px solid black;
                 width:25%;
-                height:250;
+                height:250px;
                 border-radius: 10px;
                 margin: 5px;
                 float:left;
@@ -85,35 +170,44 @@
                 font-size: 2rem;
                 color: white;
             }
-            #enterPin {
+            #beerDrinkingBanner {
+                width: 100%;
+                font-size: 3rem;
+                color: green;
+            }
+            /*
+                CONFIRMAITON SCREEN
+            */
+            #confirm {
                 width:100%;
                 height: 100%;
                 display:none;
             }
-            .pinInput {
-                width:40%;
-                height: 50px;
-                font-size: 3rem;
-                margin-top:20%;
-            }
-            .pinSubmit {
+            .confirmSubmit {
                 width:20%;
                 height: 50px;
                 font-size: 2rem;
                 margin-top:5px;
                 border-radius: 10pxl
             }
+            #finalConf {
+                font-size: 3rem;
+            }
         </style>
     </head>
     <body>
+        <div id="beer">
+
+        </div>
         <div id="people">
 
         </div>
-        <div id="enterPin">
+        <div id="confirm">
             <center>
                 <input type="text" id="personSubmit" style="display:none" />
-                <input id="pinInput" class="pinInput" type="password" /><br />
-                <button class="pinSubmit" onclick="addBeer()">Submit</button>
+                <input type="text" id="beerSubmit" style="display:none" />
+                <div id="finalConf"></div>
+                <button class="confirmSubmit" onclick="addBeer()">Confirm</button>
             </center>
         </div>
     </body>
