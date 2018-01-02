@@ -5,7 +5,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: davis-bar-app
-        S3Key: 2ae16c2dcd059e907a7dbb2c980d939f
+        S3Key: be0d6ef58b844fc29f557a2484ff5b95
       Description: Update beer count
       Handler: addBeer.lambda_handler
       Role:
@@ -32,12 +32,13 @@ Resources:
           - Ref: AWS::AccountId
           - ':'
           - Ref: BarAppApi
-          - /*/POST/*/applications
+          - /*/POST/beer
     Type: AWS::Lambda::Permission
   ApiDeployment:
     DependsOn:
     - PeopleMethodGET
     - PeopleMethodOPTIONS
+    - BeerMethodGET
     - BeerMethodPOST
     - BeerMethodOPTIONS
     Properties:
@@ -79,11 +80,6 @@ Resources:
         PolicyName: BarAppPolicy
     Type: AWS::IAM::Role
   BarAppStage:
-    DependsOn:
-    - PeopleMethodGET
-    - PeopleMethodOPTIONS
-    - BeerMethodPOST
-    - BeerMethodOPTIONS
     Properties:
       DeploymentId:
         Ref: ApiDeployment
@@ -96,10 +92,38 @@ Resources:
         Ref: BarAppApi
       StageName: v1
     Type: AWS::ApiGateway::Stage
+  BeerMethodGET:
+    DependsOn:
+    - GetBeerLambda
+    - GetBeerLambdaPermission
+    Properties:
+      ApiKeyRequired: true
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+        - StatusCode: 200
+        Type: AWS_PROXY
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - GetBeerLambda
+              - Arn
+            - /invocations
+      ResourceId:
+        Ref: BeerResource
+      RestApiId:
+        Ref: BarAppApi
+    Type: AWS::ApiGateway::Method
   BeerMethodOPTIONS:
     DependsOn:
-    - AddBeerLambda
-    - AddBeerLambdaPermission
+    - GetBeerLambda
+    - GetBeerLambdaPermission
     Properties:
       AuthorizationType: NONE
       HttpMethod: OPTIONS
@@ -107,7 +131,7 @@ Resources:
         IntegrationResponses:
         - ResponseParameters:
             method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
-            method.response.header.Access-Control-Allow-Methods: '''POST,OPTIONS'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,OPTIONS'''
             method.response.header.Access-Control-Allow-Origin: '''*'''
           ResponseTemplates:
             application/json: ''
@@ -159,8 +183,8 @@ Resources:
     Type: AWS::ApiGateway::Method
   BeerResource:
     DependsOn:
-    - AddBeerLambda
-    - AddBeerLambdaPermission
+    - GetBeerLambda
+    - GetBeerLambdaPermission
     Properties:
       ParentId:
         Fn::GetAtt:
@@ -170,11 +194,44 @@ Resources:
       RestApiId:
         Ref: BarAppApi
     Type: AWS::ApiGateway::Resource
+  GetBeerLambda:
+    Properties:
+      Code:
+        S3Bucket: davis-bar-app
+        S3Key: b3f24c40817e722fe6b0e86c720841a7
+      Description: Get People
+      Handler: getBeer.lambda_handler
+      Role:
+        Fn::GetAtt:
+        - BarAppLambdaRole
+        - Arn
+      Runtime: python3.6
+      Timeout: '60'
+    Type: AWS::Lambda::Function
+  GetBeerLambdaPermission:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - GetBeerLambda
+        - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ':'
+          - Ref: AWS::AccountId
+          - ':'
+          - Ref: BarAppApi
+          - /*/GET/beer
+    Type: AWS::Lambda::Permission
   GetPeopleLambda:
     Properties:
       Code:
         S3Bucket: davis-bar-app
-        S3Key: 9c9a4cfdcd81353c112a9e36f3bfe46d
+        S3Key: e35ff8eb4d6c7405a87fada28c27e9dc
       Description: Get People
       Handler: getPeople.lambda_handler
       Role:
@@ -201,7 +258,7 @@ Resources:
           - Ref: AWS::AccountId
           - ':'
           - Ref: BarAppApi
-          - /*/GET/*/applications
+          - /*/GET/people
     Type: AWS::Lambda::Permission
   PeopleMethodGET:
     DependsOn:
@@ -242,7 +299,7 @@ Resources:
         IntegrationResponses:
         - ResponseParameters:
             method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
-            method.response.header.Access-Control-Allow-Methods: '''POST,OPTIONS'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,OPTIONS'''
             method.response.header.Access-Control-Allow-Origin: '''*'''
           ResponseTemplates:
             application/json: ''
