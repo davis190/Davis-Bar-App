@@ -4,7 +4,7 @@ This is a base tracking application. It is used for a bar app to track amount of
 
 ## File explaination
 - cf.template.yml - This file is a CloudFormation template that creates lambda functions from the pythong files in the folders.
-- addBeer & getPeople - Python functions for lambda that will act as the API and interact with the Dynamo tables
+- addBeer, getPeople and getBeer - Python functions for lambda that will act as the API and interaction with the Dynamo tables
 - html - The folder of HTML files. Could be a single page app but split out some config variables to not check them into GitHub.
 
 ## DynamoDB Table(s)
@@ -12,6 +12,15 @@ DavisBarApp
 - Name - primary key
 - BeerCount
 - PIN
+
+DavisBarApp-BeersOnTap
+- TapPosition - primary key
+- Beer
+
+DavisBarApp-BeersDrank
+- Timestamp - primary key
+- Beer
+- Person
 
 ## Setup and maintain the stack
 
@@ -28,9 +37,8 @@ DavisBarApp
 
 
 ## Current Manual steps
-- CORS + Registering the objects in order
 - Associating API key/usage plan with API
-- Dynamo Table
+- Creating and populating DynamoDB tables
 
 
 
